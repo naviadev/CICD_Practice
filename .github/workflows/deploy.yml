@@ -1,22 +1,20 @@
-name: Deploy to S3 or ECS
+name: Deploy to AWS ECS
 
 on:
   push:
-    paths:
-      - "dist/**"
-      - "Dockerfile"
+    branches:
+      - main # main 브랜치에 푸시할 때 실행
 
 jobs:
-  # S3 배포 작업
-  deploy-s3:
+  deploy:
     runs-on: ubuntu-latest
-    if: contains(github.event.commits.*.modified, 'dist/') # dist 폴더 변경 시에만 실행
+
     steps:
-      # 1. Checkout repository
-      - name: Checkout repository
+      # 1. 코드 체크아웃
+      - name: Checkout code
         uses: actions/checkout@v3
 
-      # 2. Configure AWS credentials
+      # 2. AWS 자격 증명 구성
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v2
         with:
@@ -24,48 +22,36 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
 
-      # 3. Upload files to S3
+      # 3. S3로 파일 업로드
       - name: Upload files to S3
         run: |
           aws s3 sync dist s3://testpractice1020/ --delete
 
-      # 4. List uploaded files (optional)
+      # 4. 업로드된 파일 나열 (선택 사항)
       - name: List uploaded files
         run: aws s3 ls s3://testpractice1020/ --recursive
 
-  # Docker + ECS 배포 작업
-  deploy-ecs:
-    runs-on: ubuntu-latest
-    if: contains(github.event.commits.*.modified, 'Dockerfile') # Dockerfile 변경 시에만 실행
-    steps:
-      # 1. Checkout repository
-      - name: Checkout repository
-        uses: actions/checkout@v3
-
-      # 2. Log in to Amazon ECR
-      - name: Log in to Amazon ECR
+      # 5. ECR 로그인
+      - name: Login to Amazon ECR
         run: |
-          aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com
-
-      # 3. Build Docker image
-      - name: Build Docker image
+          aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | \
+          docker login --username AWS --password-stdin ${{ secrets.AWS_ECR_URI }}
+          
+      # 6. Docker 이미지 빌드 및 푸시
+      - name: Build and Push Docker Image
         run: |
-          docker build -t practice-express-docker .
+          docker buildx create --name mybuilder --use
+          docker buildx inspect --bootstrap
+          docker buildx build \
+            --platform linux/amd64,linux/arm64 \
+            -t ${{ secrets.AWS_ECR_URI }}/my-express-app:latest \
+            --push .
 
-      # 4. Tag Docker image for ECR
-      - name: Tag Docker image
-        run: |
-          docker tag practice-express-docker:latest${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/practice-express-docker:latest
-
-      # 5. Push Docker image to ECR
-      - name: Push Docker image to ECR
-        run: |
-          docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/practice-express-docker:latest
-
-      # 6. Update ECS Service
+      # 7. ECS 서비스 업데이트
       - name: Update ECS Service
         run: |
           aws ecs update-service \
-            --cluster practice-express-docker \
-            --service practice-express-service \
-            --force-new-deployment
+            --cluster my-cluster \
+            --service my-express-app-service \
+            --force-new-deployment \
+            --region ${{ secrets.AWS_REGION }}
