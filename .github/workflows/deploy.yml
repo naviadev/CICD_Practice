@@ -25,11 +25,8 @@ jobs:
       # 3. S3로 파일 업로드
       - name: Upload files to S3
         run: |
-          aws s3 sync dist s3://testpractice1020/ --delete
-
-      # 4. 업로드된 파일 나열 (선택 사항)
-      - name: List uploaded files
-        run: aws s3 ls s3://testpractice1020/ --recursive
+          aws s3 cp dist/index.html s3://testpractice1020/index.html
+          aws s3 cp dist/src/app.js s3://testpractice1020/src/app.js
 
       # 5. ECR 로그인
       - name: Login to Amazon ECR
