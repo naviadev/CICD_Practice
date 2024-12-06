@@ -4,11 +4,29 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Document</title>
+    <script>
+      async function fetchGreeting() {
+        try {
+          const response = await fetch("http://<ECS_PUBLIC_IP>:3000"); // ECS의 퍼블릭 IP로 요청
+          if (response.ok) {
+            const message = await response.text();
+            document.getElementById("output").innerText = message;
+          } else {
+            document.getElementById("output").innerText =
+              "Error fetching message.";
+          }
+        } catch (error) {
+          document.getElementById("output").innerText =
+            "Unable to connect to the server.";
+        }
+      }
+    </script>
   </head>
   <body>
     <h1>TEST</h1>
-
     <p>GitAction Test</p>
+    <button onclick="fetchGreeting()">Click me</button>
+    <p id="output"></p>
   </body>
   <script src="./src/app.js"></script>
 </html>
