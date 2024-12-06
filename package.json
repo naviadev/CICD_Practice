@@ -1,0 +1,8 @@
+{
+  "name": "CICD_Practice",
+  "version": "1.0.0",
+  "main": "index.js",
+  "repository": "https://github.com/naviadev/CICD_Practice.git",
+  "author": "naviadev <qo2oq1020@gmail.com>",
+  "license": "MIT"
+}
