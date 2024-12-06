@@ -3,7 +3,7 @@ name: Deploy to S3
 on:
   push:
     paths:
-      - "dist/index.html"
+      - "dist/**"
 
 jobs:
   deploy:
@@ -20,6 +20,11 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
 
-      - name: Upload index.html to S3
+      - name: Upload files to S3
+
         run: |
-          aws s3 cp dist/index.html s3://testpractice1020/index.html
+          aws s3 sync dist s3://testpractice1020/ --delete
+
+
+      - name: List uploaded files
+        run: aws s3 ls s3://testpractice1020/ --recursive
